@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis - Neural Network Based</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .result.positive {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        
+        .result.negative {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+
+        .result.neutral {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        .result h3 {
+            margin-bottom: 15px;
+        }
+        
+        .sentiment-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .confidence-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .confidence-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s ease-out;
+        }
+        
+        .result.negative .confidence-fill {
+            background: linear-gradient(90deg, #dc3545, #ff6b6b);
+        }
+
+        .result.neutral .confidence-fill {
+            background: linear-gradient(90deg, #ffc107, #fd7e14);
+        }
+        
+        .examples {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .examples h4 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .example-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .example-btn {
+            background: #f0f0f0;
+            color: #333;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .example-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Sentiment Analysis</h1>
+        <div class="subtitle">Powered by Neural Networks & DeepLearning4J</div>
+        
+        <div class="input-group">
+            <label for="textInput">Enter your text:</label>
+            <textarea id="textInput" rows="4" placeholder="e.g., This product is amazing! I love it..."></textarea>
+        </div>
+        
+        <button onclick="analyzeSentiment()">Analyze Sentiment</button>
+        
+        <div id="result" class="result">
+            <h3>Analysis Result:</h3>
+            <div id="sentimentText" class="sentiment-text"></div>
+            <div id="confidenceInfo"></div>
+            <div class="confidence-bar">
+                <div id="confidenceFill" class="confidence-fill" style="width: 0%">0%</div>
+            </div>
+            <div id="scoreInfo" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+        </div>
+        
+        <div class="examples">
+            <h4>📝 Try these examples:</h4>
+            <div class="example-buttons">
+                <button class="example-btn" onclick="setExample('This movie is absolutely amazing and brilliant!')">Positive</button>
+                <button class="example-btn" onclick="setExample('Worst product ever, terrible quality')">Negative</button>
+                <button class="example-btn" onclick="setExample('Not bad, could be better but it\'s okay')">Neutral</button>
+                <button class="example-btn" onclick="setExample('I love this, great value for money!')">Very Positive</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function analyzeSentiment() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+            
+            // Show loading state
+            const button = document.querySelector('button');
+            const originalText = button.textContent;
+            button.innerHTML = 'Analyzing <span class="loading"></span>';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/api/sentiment/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error analyzing sentiment. Please try again.');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            const sentimentText = document.getElementById('sentimentText');
+            const confidenceFill = document.getElementById('confidenceFill');
+            const confidenceInfo = document.getElementById('confidenceInfo');
+            const scoreInfo = document.getElementById('scoreInfo');
+            
+            // Set sentiment text with emoji
+            const emojiMap = {
+                Positive: '😊',
+                Negative: '😞',
+                Neutral: '😐'
+            };
+            const emoji = emojiMap[data.sentiment] || '😐';
+            sentimentText.innerHTML = `${emoji} ${data.sentiment} Sentiment`;
+            
+            // Set confidence
+            const confidencePercent = (data.confidence * 100).toFixed(1);
+            confidenceFill.style.width = `${confidencePercent}%`;
+            confidenceFill.textContent = `${confidencePercent}%`;
+            confidenceInfo.innerHTML = `<strong>Confidence:</strong> ${confidencePercent}%`;
+            
+            // Set neural network score
+            const scoreValue = (data.score * 100).toFixed(2);
+            scoreInfo.innerHTML = `🧠 Neural Network Output Score: ${scoreValue}% (Sigmoid Activation)`;
+            
+            // Set result class
+            resultDiv.className = `result ${data.sentiment.toLowerCase()}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        function setExample(text) {
+            document.getElementById('textInput').value = text;
+            analyzeSentiment();
+        }
+        
+        // Enter key support
+        document.getElementById('textInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                analyzeSentiment();
+            }
+        });
+    </script>
+</body>
+</html>
